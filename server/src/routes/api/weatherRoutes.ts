@@ -1,21 +1,8 @@
 import { Router } from 'express';
-import fs from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import axios from 'axios';
+import historyService from '../../service/historyService.js';
+import weatherService from '../../service/weatherService.js';
 
 const router = Router();
-const weatherApiKey = process.env.WEATHER_API_KEY;
-const historyFilePath = path.join(__dirname, '../../searchHistory.json');
-
-const readHistory = (): any[] => {
-  const data = fs.readFileSync(historyFilePath, 'utf8');
-  return JSON.parse(data);
-};
-
-const writeHistory = (history: any[]): void => {
-  fs.writeFileSync(historyFilePath, JSON.stringify(history));
-};
 
 router.post('/', async (req, res) => {
   const { city } = req.body;
@@ -24,36 +11,31 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const response = await axios.get(`http://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${weatherApiKey}&units=metric`);
-    const weatherData = response.data;
-
-    const cityData = {
-      id: uuidv4(),
-      city,
-      weatherData
-    };
-
-    const history = readHistory();
-    history.push(cityData);
-    writeHistory(history);
-
+    const weatherData = await weatherService.getWeatherForCity(city);
+    await historyService.addCity(city);
     res.json(weatherData);
   } catch (error) {
     res.status(500).send('Error retrieving weather data');
   }
 });
 
-router.get('/history', (req, res) => {
-  const history = readHistory();
-  res.json(history);
+router.get('/history', async (req, res) => {
+  try {
+    const history = await historyService.getCities();
+    res.json(history);
+  } catch (error) {
+    res.status(500).send('Error retrieving history');
+  }
 });
 
-router.delete('/history/:id', (req, res) => {
+router.delete('/history/:id', async (req, res) => {
   const { id } = req.params;
-  let history = readHistory();
-  history = history.filter(city => city.id !== id);
-  writeHistory(history);
-  res.sendStatus(204);
+  try {
+    await historyService.removeCity(id);
+    res.sendStatus(204);
+  } catch (error) {
+    res.status(500).send('Error removing city from history');
+  }
 });
 
 export default router;

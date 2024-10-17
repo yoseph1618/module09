@@ -1,5 +1,4 @@
 import fs from 'fs/promises';
-import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 // Define a City class with name and id properties
@@ -8,7 +7,7 @@ class City {
 }
 
 // Define the path to the searchHistory.json file
-const historyFilePath = path.join(__dirname, '../../searchHistory.json');
+const historyFilePath = `./searchHistory.json`;
 
 class HistoryService {
   // Read from the searchHistory.json file
